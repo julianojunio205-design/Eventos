@@ -1,0 +1,511 @@
+cat > /home/user/agent/app-staging/event-simulator.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Eventos</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #7C3AED; --primary-light: #A78BFA; --primary-dark: #5B21B6;
+    --accent: #F59E0B; --bg: #0F0A1E; --bg2: #1A1033; --bg3: #231744;
+    --card: #1E1538; --text: #F3F0FF; --text2: #A99DC2;
+    --success: #10B981; --border: #3D2B6E;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+  .particle { position: absolute; border-radius: 50%; background: var(--primary-light); opacity: 0.08; animation: float linear infinite; }
+  @keyframes float { 0%{transform:translateY(100vh) scale(0);opacity:0} 10%{opacity:.08} 90%{opacity:.08} 100%{transform:translateY(-10vh) scale(1);opacity:0} }
+  .app { position: relative; z-index: 1; }
+  header { padding: 20px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); background: rgba(15,10,30,0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+  .logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .brand { font-size: 18px; font-weight: 700; }
+  .brand span { color: var(--primary-light); }
+  .screen { display: none; max-width: 680px; margin: 0 auto; padding: 32px 20px 60px; }
+  .screen.active { display: block; animation: slideUp 0.35s ease; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .hero { text-align: center; padding: 60px 0 40px; }
+  .hero-icon { width: 90px; height: 90px; border-radius: 24px; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 44px; margin: 0 auto 28px; box-shadow: 0 0 60px rgba(124,58,237,0.4); animation: pulse 3s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 40px rgba(124,58,237,0.3)} 50%{box-shadow:0 0 80px rgba(124,58,237,0.6)} }
+  .hero h1 { font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--text2); font-size: 17px; line-height: 1.6; max-width: 440px; margin: 0 auto 40px; }
+  .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 40px; }
+  .feat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; text-align: left; }
+  .feat-card .feat-icon { font-size: 26px; margin-bottom: 8px; }
+  .feat-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .feat-card p { font-size: 12px; color: var(--text2); }
+  .btn-primary { width: 100%; padding: 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 8px 30px rgba(124,58,237,0.35); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,0.5); }
+  .btn-secondary { width: 100%; padding: 16px; border-radius: 14px; border: 2px solid var(--border); background: transparent; color: var(--text2); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-top: 12px; }
+  .btn-secondary:hover { border-color: var(--primary-light); color: var(--primary-light); }
+  .btn-whatsapp { width: 100%; padding: 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, #25D366, #128C7E); color: white; font-size: 17px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 30px rgba(37,211,102,0.3); }
+  .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(37,211,102,0.5); }
+  .option-grid { display: grid; gap: 10px; }
+  .option-grid.cols2 { grid-template-columns: repeat(2, 1fr); }
+  .option-grid.cols3 { grid-template-columns: repeat(3, 1fr); }
+  .option-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 14px 12px; cursor: pointer; transition: all 0.25s; text-align: center; position: relative; overflow: hidden; }
+  .option-card .oc-icon { font-size: 24px; margin-bottom: 6px; }
+  .option-card .oc-label { font-size: 13px; font-weight: 600; }
+  .option-card .oc-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .option-card.selected { border-color: var(--primary); background: rgba(124,58,237,0.15); box-shadow: 0 0 20px rgba(124,58,237,0.2); }
+  .option-card.selected::after { content: '✓'; position: absolute; top: 7px; right: 9px; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; font-size: 10px; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .option-card:hover { border-color: var(--primary-light); }
+
+  /* MULTI-SELECT CARDS (DJ + Banda) */
+  .multi-option-card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 14px 12px; cursor: pointer; transition: all 0.25s; text-align: center; position: relative; overflow: hidden; }
+  .multi-option-card .oc-icon { font-size: 24px; margin-bottom: 6px; }
+  .multi-option-card .oc-label { font-size: 13px; font-weight: 600; }
+  .multi-option-card .oc-sub { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .multi-option-card.selected { border-color: var(--primary); background: rgba(124,58,237,0.15); box-shadow: 0 0 20px rgba(124,58,237,0.2); }
+  .multi-option-card.selected::after { content: '✓'; position: absolute; top: 7px; right: 9px; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; font-size: 10px; color: white; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .multi-option-card:hover { border-color: var(--primary-light); }
+
+  /* TOGGLE CARDS (LED, Pista Paris) */
+  .toggle-card { background: var(--card); border: 2px solid var(--border); border-radius: 14px; padding: 16px 18px; cursor: pointer; transition: all 0.25s; display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .toggle-card:hover { border-color: var(--primary-light); }
+  .toggle-card.selected { border-color: var(--primary); background: rgba(124,58,237,0.12); box-shadow: 0 0 16px rgba(124,58,237,0.2); }
+  .toggle-card-icon { font-size: 28px; flex-shrink: 0; }
+  .toggle-card-info { flex: 1; }
+  .toggle-card-info h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .toggle-card-info p { font-size: 12px; color: var(--text2); }
+  .toggle-card-price { font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+  .toggle-switch { width: 44px; height: 24px; border-radius: 12px; background: var(--bg3); border: 2px solid var(--border); position: relative; flex-shrink: 0; transition: all 0.3s; }
+  .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--text2); transition: all 0.3s; }
+  .toggle-card.selected .toggle-switch { background: var(--primary); border-color: var(--primary); }
+  .toggle-card.selected .toggle-switch::after { left: 22px; background: white; }
+
+  .number-input-wrap { display: flex; align-items: center; background: var(--card); border: 2px solid var(--border); border-radius: 12px; overflow: hidden; width: 100%; }
+  .number-input-wrap input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 18px; font-weight: 600; text-align: center; padding: 14px 8px; }
+  .num-btn { width: 52px; height: 52px; background: var(--bg3); border: none; color: var(--text); font-size: 22px; cursor: pointer; transition: background 0.2s; }
+  .num-btn:hover { background: var(--primary); }
+  .slider-wrap { padding: 8px 0; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: var(--bg3); outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--primary); cursor: pointer; box-shadow: 0 0 10px rgba(124,58,237,0.5); }
+  .slider-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-top: 8px; }
+  .form-section { margin-bottom: 28px; }
+  .section-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .section-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+  .form-nav { display: flex; gap: 12px; margin-top: 32px; }
+  .form-nav .btn-primary { flex: 2; }
+  .btn-back { flex: 1; padding: 16px; border-radius: 14px; border: 2px solid var(--border); background: transparent; color: var(--text2); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+  .btn-back:hover { border-color: var(--primary-light); color: var(--primary-light); }
+  .progress-wrap { margin-bottom: 28px; }
+  .progress-bar-bg { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.5s ease; }
+  .progress-text { font-size: 12px; color: var(--text2); margin-top: 6px; }
+  .result-header { text-align: center; padding: 28px 0 24px; }
+  .result-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.15); border: 1px solid var(--success); border-radius: 30px; padding: 8px 18px; font-size: 13px; color: var(--success); font-weight: 600; margin-bottom: 20px; }
+  .result-header h2 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .result-header p { color: var(--text2); font-size: 15px; }
+  .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .result-card-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .rc-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .rc-icon.purple { background: rgba(124,58,237,0.2); }
+  .rc-icon.yellow { background: rgba(245,158,11,0.2); }
+  .rc-icon.cyan { background: rgba(6,182,212,0.2); }
+  .rc-icon.green { background: rgba(16,185,129,0.2); }
+  .rc-icon.pink { background: rgba(236,72,153,0.2); }
+  .result-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .result-item:last-child { margin-bottom: 0; }
+  .ri-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary-light); margin-top: 6px; flex-shrink: 0; }
+  .ri-text { font-size: 14px; color: var(--text2); line-height: 1.5; }
+  .ri-text strong { color: var(--text); }
+  .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .sum-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .sum-value { font-size: 14px; font-weight: 600; }
+  .price-card { background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(245,158,11,0.1)); border: 1px solid var(--primary); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
+  .price-label { font-size: 13px; color: var(--text2); margin-bottom: 8px; font-weight: 500; }
+  .price-value { font-size: 38px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+  .price-range { font-size: 14px; color: var(--text2); }
+  .price-breakdown { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); text-align: left; }
+  .pb-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .pb-item:last-child { border-bottom: none; }
+  .pb-name { color: var(--text2); }
+  .pb-price { font-weight: 600; color: var(--text); }
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+  .hint-tag { display: inline-block; background: rgba(124,58,237,0.15); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: var(--primary-light); margin-bottom: 14px; }
+  @media (max-width: 420px) { .features { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: 1fr; } .hero h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="particles" id="particles"></div>
+<div class="app">
+  <header>
+    <div class="logo">🎪</div>
+    <div class="brand">Evento<span>Pro</span></div>
+  </header>
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-icon">🎉</div>
+      <h1>Monte a estrutura <span>ideal</span> para seu evento</h1>
+      <p>Responda algumas perguntas e receba uma recomendação personalizada de som, iluminação, LED e muito mais — com estimativa de preço na hora.</p>
+      <button class="btn-primary" onclick="goToForm()">✨ Simular meu evento</button>
+    </div>
+    <div class="features">
+      <div class="feat-card"><div class="feat-icon">🔊</div><h4>Som Profissional</h4><p>Recomendação de equipamentos conforme o porte</p></div>
+      <div class="feat-card"><div class="feat-icon">💡</div><h4>Iluminação</h4><p>De básica a premium com moving lights</p></div>
+      <div class="feat-card"><div class="feat-icon">📺</div><h4>Painel de LED</h4><p>Para eventos médios e grandes com impacto visual</p></div>
+      <div class="feat-card"><div class="feat-icon">💰</div><h4>Estimativa Rápida</h4><p>Preço estimado instantaneamente</p></div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="screen" id="screen-step1">
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:25%"></div></div>
+      <div class="progress-text">Etapa 1 de 3 — Tipo e porte do evento</div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Que tipo de evento é? 🎊</div>
+      <div class="section-subtitle">Selecione a categoria do seu evento</div>
+      <div class="option-grid cols2" id="tipo-evento">
+        <div class="option-card" onclick="selectOption(this,'tipo-evento')" data-value="Casamento"><div class="oc-icon">💍</div><div class="oc-label">Casamento</div></div>
+        <div class="option-card" onclick="selectOption(this,'tipo-evento')" data-value="Aniversário"><div class="oc-icon">🎂</div><div class="oc-label">Aniversário</div></div>
+        <div class="option-card" onclick="selectOption(this,'tipo-evento')" data-value="Show"><div class="oc-icon">🎸</div><div class="oc-label">Show / Festa</div></div>
+        <div class="option-card" onclick="selectOption(this,'tipo-evento')" data-value="Corporativo"><div class="oc-icon">🏢</div><div class="oc-label">Corporativo</div></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Quantas pessoas? 👥</div>
+      <div class="section-subtitle">Número estimado de convidados</div>
+      <div class="number-input-wrap">
+        <button class="num-btn" onclick="changeNum(-50)">−</button>
+        <input type="number" id="qtd-pessoas" value="100" min="10" max="5000" oninput="updatePessoasLabel()">
+        <button class="num-btn" onclick="changeNum(50)">+</button>
+      </div>
+      <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--text2)" id="pessoas-label">Evento médio</div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Duração do evento ⏱️</div>
+      <div class="section-subtitle">Quantas horas de evento?</div>
+      <div class="slider-wrap">
+        <input type="range" id="duracao" min="2" max="12" value="6" step="1" oninput="updateDuracao()">
+        <div class="slider-labels"><span>2h</span><span>4h</span><span>6h</span><span>8h</span><span>10h</span><span>12h</span></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;font-size:20px;font-weight:700" id="duracao-label">6 horas</div>
+    </div>
+    <div class="form-nav">
+      <button class="btn-back" onclick="goHome()">← Voltar</button>
+      <button class="btn-primary" onclick="nextStep(1)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="screen" id="screen-step2">
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:55%"></div></div>
+      <div class="progress-text">Etapa 2 de 3 — Espaço e ambiente</div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Ambiente do evento 🌿</div>
+      <div class="section-subtitle">Onde acontecerá o evento?</div>
+      <div class="option-grid cols2" id="ambiente">
+        <div class="option-card" onclick="selectOption(this,'ambiente')" data-value="Interno"><div class="oc-icon">🏠</div><div class="oc-label">Interno</div><div class="oc-sub">Salão, clube, etc.</div></div>
+        <div class="option-card" onclick="selectOption(this,'ambiente')" data-value="Externo"><div class="oc-icon">🌳</div><div class="oc-label">Externo</div><div class="oc-sub">Área aberta, sítio, etc.</div></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Tamanho do espaço 📐</div>
+      <div class="section-subtitle">Qual o porte do local?</div>
+      <div class="option-grid cols3" id="tamanho-espaco">
+        <div class="option-card" onclick="selectOption(this,'tamanho-espaco')" data-value="Pequeno"><div class="oc-icon">🏡</div><div class="oc-label">Pequeno</div><div class="oc-sub">Até 80m²</div></div>
+        <div class="option-card" onclick="selectOption(this,'tamanho-espaco')" data-value="Médio"><div class="oc-icon">🏟️</div><div class="oc-label">Médio</div><div class="oc-sub">80 a 300m²</div></div>
+        <div class="option-card" onclick="selectOption(this,'tamanho-espaco')" data-value="Grande"><div class="oc-icon">🏰</div><div class="oc-label">Grande</div><div class="oc-sub">Acima de 300m²</div></div>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn-back" onclick="prevStep(2)">← Voltar</button>
+      <button class="btn-primary" onclick="nextStep(2)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="screen" id="screen-step3">
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:85%"></div></div>
+      <div class="progress-text">Etapa 3 de 3 — Nível, som e adicionais</div>
+    </div>
+    <div class="form-section">
+      <div class="section-title">Nível do evento ⭐</div>
+      <div class="section-subtitle">Qual o padrão desejado?</div>
+      <div class="option-grid cols3" id="nivel-evento">
+        <div class="option-card" onclick="selectOption(this,'nivel-evento')" data-value="Básico"><div class="oc-icon">⭐</div><div class="oc-label">Básico</div><div class="oc-sub">Funcional</div></div>
+        <div class="option-card" onclick="selectOption(this,'nivel-evento')" data-value="Intermediário"><div class="oc-icon">⭐⭐</div><div class="oc-label">Intermediário</div><div class="oc-sub">Com efeitos</div></div>
+        <div class="option-card" onclick="selectOption(this,'nivel-evento')" data-value="Premium"><div class="oc-icon">👑</div><div class="oc-label">Premium</div><div class="oc-sub">Alto impacto</div></div>
+      </div>
+    </div>
+
+    <!-- TIPO DE SOM: MULTI-SELECT -->
+    <div class="form-section">
+      <div class="section-title">Tipo de som 🎵</div>
+      <div class="hint-tag">✌️ Pode selecionar os dois!</div>
+      <div class="option-grid cols2" id="tipo-som-multi">
+        <div class="multi-option-card" onclick="toggleSom(this,'DJ')" data-value="DJ"><div class="oc-icon">🎧</div><div class="oc-label">DJ</div><div class="oc-sub">Música eletrônica / playlist</div></div>
+        <div class="multi-option-card" onclick="toggleSom(this,'Banda')" data-value="Banda"><div class="oc-icon">🎷</div><div class="oc-label">Banda</div><div class="oc-sub">Música ao vivo</div></div>
+      </div>
+    </div>
+
+    <!-- ADICIONAIS: TOGGLE CARDS -->
+    <div class="form-section">
+      <div class="section-title">Adicionais ✨</div>
+      <div class="section-subtitle">Selecione os itens que deseja incluir</div>
+
+      <div class="toggle-card" id="toggle-led" onclick="toggleAdicional('led')">
+        <div class="toggle-card-icon">📺</div>
+        <div class="toggle-card-info">
+          <h4>Painel de LED</h4>
+          <p>Telão modular HD com estrutura de box truss</p>
+        </div>
+        <div class="toggle-card-price">R$ 1.000 ~ 3.000</div>
+        <div class="toggle-switch" id="switch-led"></div>
+      </div>
+
+      <div class="toggle-card" id="toggle-pista" onclick="toggleAdicional('pista')">
+        <div class="toggle-card-icon">💃</div>
+        <div class="toggle-card-info">
+          <h4>Pista Paris (Pista de LED)</h4>
+          <p>Pista de dança iluminada com efeito espelhado</p>
+        </div>
+        <div class="toggle-card-price">R$ 800</div>
+        <div class="toggle-switch" id="switch-pista"></div>
+      </div>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn-back" onclick="prevStep(3)">← Voltar</button>
+      <button class="btn-primary" onclick="calcular()">Gerar Simulação 🚀</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="screen-result">
+    <div class="result-header">
+      <div class="result-badge">✅ Simulação concluída</div>
+      <h2>Sua estrutura ideal 🎯</h2>
+      <p>Confira a recomendação personalizada para o seu evento</p>
+    </div>
+    <div class="result-card">
+      <div class="result-card-title"><div class="rc-icon green">📋</div>Resumo do Evento</div>
+      <div class="summary-grid" id="result-summary"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-title"><div class="rc-icon purple">🔊</div>Sistema de Som</div>
+      <div id="result-som"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-title"><div class="rc-icon yellow">💡</div>Iluminação</div>
+      <div id="result-luz"></div>
+    </div>
+    <div class="result-card" id="result-led-card" style="display:none">
+      <div class="result-card-title"><div class="rc-icon cyan">📺</div>Painel de LED</div>
+      <div id="result-led"></div>
+    </div>
+    <div class="result-card" id="result-extras-card" style="display:none">
+      <div class="result-card-title"><div class="rc-icon pink">✨</div>Adicionais Incluídos</div>
+      <div id="result-extras"></div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">💰 Estimativa de Investimento</div>
+      <div class="price-value" id="price-total">R$ 0</div>
+      <div class="price-range" id="price-range"></div>
+      <div class="price-breakdown" id="price-breakdown"></div>
+    </div>
+    <button class="btn-whatsapp" onclick="abrirWhatsApp()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.554 4.107 1.523 5.832L0 24l6.337-1.498C8.02 23.462 9.963 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.893 0-3.677-.519-5.214-1.426l-.374-.222-3.874.915.98-3.777-.244-.388A9.924 9.924 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+      Solicitar Orçamento no WhatsApp
+    </button>
+    <button class="btn-secondary" onclick="reiniciar()">🔄 Fazer nova simulação</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let data = {
+  tipo: '', pessoas: 100, duracao: 6,
+  ambiente: '', tamanho: '', nivel: '',
+  somDJ: false, somBanda: false,
+  temLED: false, temPista: false
+};
+
+(function() {
+  const c = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement('div');
+    const size = Math.random() * 60 + 20;
+    d.className = 'particle';
+    d.style.cssText = `left:${Math.random()*100}%;width:${size}px;height:${size}px;animation-duration:${Math.random()*20+15}s;animation-delay:${Math.random()*20}s;`;
+    c.appendChild(d);
+  }
+})();
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goHome() { showScreen('screen-home'); }
+function goToForm() { showScreen('screen-step1'); updateDuracao(); updatePessoasLabel(); }
+
+function selectOption(el, group) {
+  document.querySelectorAll(`#${group} .option-card`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  const map = {'tipo-evento':'tipo','ambiente':'ambiente','tamanho-espaco':'tamanho','nivel-evento':'nivel'};
+  data[map[group]] = el.dataset.value;
+}
+
+function toggleSom(el, tipo) {
+  el.classList.toggle('selected');
+  if (tipo === 'DJ') data.somDJ = el.classList.contains('selected');
+  if (tipo === 'Banda') data.somBanda = el.classList.contains('selected');
+}
+
+function toggleAdicional(tipo) {
+  const card = document.getElementById(`toggle-${tipo}`);
+  card.classList.toggle('selected');
+  if (tipo === 'led') data.temLED = card.classList.contains('selected');
+  if (tipo === 'pista') data.temPista = card.classList.contains('selected');
+}
+
+function changeNum(delta) {
+  const inp = document.getElementById('qtd-pessoas');
+  let v = Math.max(10, Math.min(5000, parseInt(inp.value) + delta));
+  inp.value = v; data.pessoas = v; updatePessoasLabel();
+}
+function updatePessoasLabel() {
+  data.pessoas = parseInt(document.getElementById('qtd-pessoas').value) || 100;
+  const p = data.pessoas;
+  const lbl = p<=50?'Pequeno evento':p<=100?'Evento íntimo':p<=300?'Evento médio':p<=600?'Evento grande':'Mega evento';
+  document.getElementById('pessoas-label').textContent = `${p} pessoas — ${lbl}`;
+}
+function updateDuracao() {
+  data.duracao = parseInt(document.getElementById('duracao').value);
+  document.getElementById('duracao-label').textContent = `${data.duracao} horas`;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function nextStep(step) {
+  if (step === 1) {
+    data.pessoas = parseInt(document.getElementById('qtd-pessoas').value) || 100;
+    data.duracao = parseInt(document.getElementById('duracao').value);
+    if (!data.tipo) { showToast('Selecione o tipo do evento!'); return; }
+    showScreen('screen-step2');
+  } else if (step === 2) {
+    if (!data.ambiente || !data.tamanho) { showToast('Preencha todas as opções!'); return; }
+    showScreen('screen-step3');
+  }
+}
+function prevStep(step) { if(step===2)showScreen('screen-step1'); if(step===3)showScreen('screen-step2'); }
+
+function calcular() {
+  if (!data.nivel) { showToast('Selecione o nível do evento!'); return; }
+  if (!data.somDJ && !data.somBanda) { showToast('Selecione pelo menos um tipo de som!'); return; }
+
+  // SOM
+  let somNome, somPreco, somDesc;
+  if (data.pessoas <= 100) { somNome='Som Pequeno'; somPreco=800; somDesc='2 caixas de som + 1 subwoofer'; }
+  else if (data.pessoas <= 300) { somNome='Som Médio'; somPreco=1500; somDesc='2 tops + 2 subwoofers + amplificador'; }
+  else { somNome='Som Grande'; somPreco=3000; somDesc='Line array ou sistema de grande porte'; }
+
+  // Se tiver banda, adiciona palco
+  if (data.somBanda) somPreco += 1000;
+
+  // ILUMINAÇÃO
+  let luzNome, luzPreco, luzDesc;
+  if (data.nivel==='Básico') { luzNome='Iluminação Básica'; luzPreco=500; luzDesc='Iluminação ambiente simples com spots e Par LED'; }
+  else if (data.nivel==='Intermediário') { luzNome='Iluminação com Efeitos'; luzPreco=1200; luzDesc='Par LED colorido, strobo, máquina de fumaça e efeitos cênicos'; }
+  else { luzNome='Iluminação Premium'; luzPreco=2500; luzDesc='Moving lights, beam, wash, strobo, laser e controladora profissional'; }
+
+  // LED (escolha do usuário)
+  let ledPreco = 0;
+  if (data.temLED) {
+    ledPreco = (data.pessoas > 300 || data.nivel === 'Premium') ? 3000 : 1500;
+  }
+
+  // Extras
+  const extras = [];
+  if (data.temPista) extras.push({ nome: 'Pista Paris (Pista de LED)', preco: 800, icon: '💃' });
+  if (data.ambiente === 'Externo') extras.push({ nome: 'Estrutura e cobertura', preco: 1500, icon: '⛺' });
+  if (data.somBanda) extras.push({ nome: 'Palco montado', preco: 0, icon: '🎸', obs: 'incluso no som' });
+
+  const extrasTotal = extras.reduce((s,e) => s + e.preco, 0);
+  const total = somPreco + luzPreco + ledPreco + extrasTotal;
+
+  // Tipo de som label
+  const somTipos = [];
+  if (data.somDJ) somTipos.push('DJ');
+  if (data.somBanda) somTipos.push('Banda ao vivo');
+  const somTipoLabel = somTipos.join(' + ');
+
+  // RESUMO
+  document.getElementById('result-summary').innerHTML = `
+    <div class="sum-item"><div class="sum-label">Tipo</div><div class="sum-value">${data.tipo}</div></div>
+    <div class="sum-item"><div class="sum-label">Pessoas</div><div class="sum-value">${data.pessoas}</div></div>
+    <div class="sum-item"><div class="sum-label">Duração</div><div class="sum-value">${data.duracao}h</div></div>
+    <div class="sum-item"><div class="sum-label">Ambiente</div><div class="sum-value">${data.ambiente}</div></div>
+    <div class="sum-item"><div class="sum-label">Espaço</div><div class="sum-value">${data.tamanho}</div></div>
+    <div class="sum-item"><div class="sum-label">Nível</div><div class="sum-value">${data.nivel}</div></div>`;
+
+  document.getElementById('result-som').innerHTML = `
+    <div class="result-item"><div class="ri-dot"></div><div class="ri-text"><strong>${somNome}</strong><br>${somDesc}</div></div>
+    <div class="result-item"><div class="ri-dot"></div><div class="ri-text">Apresentação: <strong>${somTipoLabel}</strong></div></div>
+    ${data.somBanda ? '<div class="result-item"><div class="ri-dot"></div><div class="ri-text">🎸 <strong>Palco montado</strong> incluso</div></div>' : ''}`;
+
+  document.getElementById('result-luz').innerHTML = `
+    <div class="result-item"><div class="ri-dot"></div><div class="ri-text"><strong>${luzNome}</strong><br>${luzDesc}</div></div>`;
+
+  if (data.temLED) {
+    document.getElementById('result-led-card').style.display = 'block';
+    document.getElementById('result-led').innerHTML = `<div class="result-item"><div class="ri-dot"></div><div class="ri-text"><strong>Painel de LED modular</strong><br>Resolução HD, estrutura de box truss inclusa. Tamanho personalizado conforme o espaço.</div></div>`;
+  } else {
+    document.getElementById('result-led-card').style.display = 'none';
+  }
+
+  const extrasVisiveis = extras.filter(e => e.preco > 0);
+  if (extrasVisiveis.length > 0) {
+    document.getElementById('result-extras-card').style.display = 'block';
+    document.getElementById('result-extras').innerHTML = extrasVisiveis.map(e =>
+      `<div class="result-item"><div class="ri-dot"></div><div class="ri-text">${e.icon} <strong>${e.nome}</strong></div></div>`).join('');
+  } else {
+    document.getElementById('result-extras-card').style.display = 'none';
+  }
+
+  // PREÇO
+  document.getElementById('price-total').textContent = `R$ ${total.toLocaleString('pt-BR')}`;
+  document.getElementById('price-range').textContent = 'Valor estimado para o evento completo';
+
+  const breakdown = [{name:`🔊 ${somNome}`, price: somPreco}];
+  if (data.somBanda) breakdown[0].name += ' + Palco';
+  breakdown.push({name:`💡 ${luzNome}`, price: luzPreco});
+  if (data.temLED) breakdown.push({name:'📺 Painel de LED', price: ledPreco});
+  extrasVisiveis.forEach(e => breakdown.push({name:`${e.icon} ${e.nome}`, price: e.preco}));
+
+  document.getElementById('price-breakdown').innerHTML =
+    breakdown.map(b => `<div class="pb-item"><span class="pb-name">${b.name}</span><span class="pb-price">R$ ${b.price.toLocaleString('pt-BR')}</span></div>`).join('') +
+    `<div class="pb-item" style="font-size:16px;font-weight:700;color:var(--accent);padding-top:12px;margin-top:4px;border-top:2px solid var(--border)"><span>Total estimado</span><span>R$ ${total.toLocaleString('pt-BR')}</span></div>`;
+
+  window._resultData = { somNome, somTipoLabel, luzNome, temLED: data.temLED, temPista: data.temPista, extras, total };
+  showScreen('screen-result');
+}
+
+function abrirWhatsApp() { window.open('http://wa.me/553588646453', '_blank'); }
+
+function reiniciar() {
+  data = { tipo:'', pessoas:100, duracao:6, ambiente:'', tamanho:'', nivel:'', somDJ:false, somBanda:false, temLED:false, temPista:false };
+  document.querySelectorAll('.option-card, .multi-option-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.toggle-card').forEach(c => c.classList.remove('selected'));
+  showScreen('screen-home');
+}
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Done"
+Done
