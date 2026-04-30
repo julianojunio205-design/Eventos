@@ -495,7 +495,7 @@ function calcular() {
   showScreen('screen-result');
 }
 
-function abrirWhatsApp() { window.open('http://wa.me/553588646453', '_blank'); }
+function abrirWhatsApp() { window.open('http://wa.me/553591565909', '_blank'); }
 
 function reiniciar() {
   data = { tipo:'', pessoas:100, duracao:6, ambiente:'', tamanho:'', nivel:'', somDJ:false, somBanda:false, temLED:false, temPista:false };
